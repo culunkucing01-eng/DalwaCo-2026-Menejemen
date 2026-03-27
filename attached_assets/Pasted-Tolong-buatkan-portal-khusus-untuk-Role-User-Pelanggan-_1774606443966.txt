@@ -1,0 +1,41 @@
+Tolong buatkan portal khusus untuk Role "User" (Pelanggan/Reseller) di aplikasi Dalwa.co. Portal ini harus terpisah dari dashboard Admin/Kasir dan memiliki fitur Self-Service (Layanan Mandiri) dengan panduan UI dan Backend berikut:
+
+1. Hak Akses & Keamanan (RBAC Database)
+
+    Update Firebase Security Rules: Role User HANYA DIIZINKAN melakukan read pada collection master_products dan inventory.
+
+    Role User HANYA DIIZINKAN melakukan read pada collection sales_transactions di mana field customer_id atau nomor_wa sama dengan data milik user yang sedang login.
+
+2. Halaman "Katalog & Cek Stok" (User Dashboard)
+
+    Buat halaman Katalog Produk yang menampilkan foto (dari ImgBB), nama, dan harga.
+
+    Harga Dinamis: Tampilkan harga sesuai Tier pelanggan yang login (Misal: Jika yang login adalah Reseller, otomatis tampilkan Harga Reseller).
+
+    Cek Stok Real-Time: Saat produk diklik, tampilkan rincian Varian (Warna & Size) beserta teks "Stok Tersedia: [Jumlah] Pcs". Data ini ditarik langsung dari tabel inventory. Sembunyikan varian yang stoknya 0.
+
+    (Catatan: Sifatnya hanya view/katalog, belum ada tombol Add to Cart kecuali ingin dibuatkan fitur E-Commerce).
+
+3. Halaman "Riwayat Transaksi & Invoice"
+
+    Tampilkan tabel daftar pembelian yang pernah dilakukan oleh User tersebut.
+
+    Sediakan tombol "Download Invoice (PDF/PNG)" di setiap baris transaksi agar pelanggan bisa mencetak struknya sendiri.
+
+    Tampilkan Status Pembayaran dengan Badge warna: Hijau (Lunas), Kuning (Menunggu Pembayaran/DP), Merah (Piutang).
+
+4. Auto-Notifikasi Pembayaran Sukses (In-App)
+
+    Buat sistem Real-time Listener (onSnapshot Firebase) di dashboard User.
+
+    Jika Admin/Kasir mengubah status tagihan mereka menjadi "Lunas", otomatis munculkan Pop-up/Toast sukses di layar Pelanggan: "Pembayaran senilai Rp [Nominal] telah dikonfirmasi. Terima kasih!" beserta ikon lonceng notifikasi.
+
+5. Sistem Pengingat Jatuh Tempo (Overdue Reminder)
+
+    Di halaman Beranda/Dashboard User, buat sebuah Banner Alert besar berwarna Merah/Kuning di paling atas layar.
+
+    Logika Banner: Muncul HANYA JIKA ada data di sales_transactions milik user tersebut yang status_pembayaran: "Piutang" DAN tanggal_jatuh_tempo <= hari ini.
+
+    Isi Teks: "Peringatan: Anda memiliki 1 Invoice yang telah JATUH TEMPO (Nominal: Rp XXX.XXX). Harap segera lakukan pelunasan ke rekening BCA 2251104621 untuk menghindari kendala pesanan berikutnya."
+
+    Sediakan tombol "Konfirmasi Pembayaran" yang mengarahkan user untuk mengirim foto bukti transfer.

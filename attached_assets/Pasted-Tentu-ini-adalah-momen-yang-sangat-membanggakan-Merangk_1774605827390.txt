@@ -1,0 +1,90 @@
+Tentu, ini adalah momen yang sangat membanggakan! Merangkum seluruh perjalanan panjang pengembangan aplikasi ini ke dalam satu dokumen resmi adalah langkah wajib sebelum *Grand Launching*. 
+
+Berikut adalah rancangan **Dokumentasi Resmi Sistem ERP & POS DALWA.CO (Kalkus)** yang menyatukan seluruh fitur, perbaikan *backend*, logika bisnis, dan struktur *database* yang telah kita bangun bersama. Anda bisa menyimpan teks ini, mengekspornya ke PDF, atau menaruhnya di menu "Panduan SOP" di dalam aplikasi Anda.
+
+***
+
+# 📘 DOKUMENTASI SISTEM ERP & POS DALWA.CO (KALKUS)
+**Versi:** 1.0 (Production Release) | **Platform:** Web App (React / Firebase)
+
+---
+
+## 1. GAMBARAN UMUM SISTEM
+Kalkus (Sistem Manajemen Terpadu Dalwa.co) adalah aplikasi *Enterprise Resource Planning* (ERP) mini dan *Point of Sale* (POS) yang dirancang khusus untuk bisnis ritel *fashion*. Sistem ini mengelola operasional dari hulu ke hilir: mulai dari pembelian kain mentah, produksi konveksi (Makloon), manajemen inventaris multi-cabang, kasir, hingga pelaporan keuangan (Laba/Rugi) secara *real-time*.
+
+**Infrastruktur Teknis Utama:**
+* **Database:** Google Firebase (Firestore Database).
+* **Image Storage:** ImgBB API (Bypass Firebase Storage untuk efisiensi biaya / *Unlimited Free Hosting*).
+* **Integritas Data:** Menggunakan *Atomic Transactions* untuk mencegah *Race Condition* (stok minus).
+
+---
+
+## 2. ARSITEKTUR HAK AKSES (ROLE-BASED ACCESS CONTROL)
+Sistem memisahkan wewenang secara ketat untuk mencegah kecurangan (*Fraud*) dan kesalahan manusia (*Human Error*).
+
+### 🔴 Admin Utama (Pusat / Owner)
+* **Hak Akses:** Penuh (Super Admin).
+* **Wewenang Eksklusif:** Menentukan Harga Jual (Normal, Reseller, VVIP), melihat Laporan Keuangan (Laba/Rugi), menyetujui (Approve) Opname Kasir, menghapus Kategori, dan mereset *database*.
+
+### 🟡 Admin Gudang (Logistik)
+* **Hak Akses:** Modul Produk, Produksi, dan Logistik.
+* **Wewenang Eksklusif:** Menginput Master Produk, mengatur HPP (Harga Pokok Penjualan), mengelola konversi kain ke baju, mencetak Hangtag Barcode, dan mengirim Surat Jalan ke cabang. Dilarang melihat/mengubah Harga Jual.
+
+### 🟢 Kasir Toko (Operasional)
+* **Hak Akses:** POS, Pesanan WA, dan Stok Toko Sendiri.
+* **Wewenang Eksklusif:** Memproses transaksi, melacak piutang pelanggan, dan menerima barang dari Surat Jalan Gudang. Dilarang mengedit data Master Produk atau mengubah stok secara manual tanpa persetujuan (Approval).
+
+---
+
+## 3. MODUL UTAMA & LOGIKA BISNIS
+
+### 3.1. Master Produk & Manajemen Varian
+* **Hierarki Varian:** Produk dibedakan berdasarkan SKU Induk ➔ Model ➔ Warna ➔ Ukuran.
+* **Auto-Generate Barcode:** Sistem merakit *Barcode* otomatis berdasarkan kategori. Contoh: Kemeja Navy XL menjadi `KMJ-001-NAV-XL`.
+* **Manajemen Kategori:** Admin Gudang dapat mengelola etalase toko. Kategori tidak dapat dihapus jika masih ada produk di dalamnya (*Safe Delete*).
+* **Cetak Hangtag Label:** Fitur *print* CSS yang dioptimalkan untuk Printer Thermal (33x15mm) yang mencetak Nama, Harga, Warna, Ukuran, dan *Barcode* Garis.
+
+### 3.2. Modul Produksi & Logistik (Gudang)
+* **Konveksi Makloon:** Mengubah stok kain (Meter) menjadi stok baju jadi (Pcs). Mendukung input ongkos jahit per Pcs.
+* **Distribusi Varian:** Saat kain dipotong, Gudang WAJIB memecah hasilnya ke varian spesifik (Misal: 20 baju = Navy M 10 pcs, L 10 pcs) sebagai instruksi penjahit.
+* **Surat Jalan Digital:** Pengiriman barang ke toko menggunakan sistem keranjang. Stok Gudang terpotong secara *Atomic* saat Surat Jalan diproses.
+
+### 3.3. Modul Kasir POS & Penjualan
+* **Tiered Pricing (Harga Bertingkat):** Harga di layar POS otomatis berubah lebih murah jika Kasir memilih pelanggan dengan status *Reseller*, *VVIP 1*, atau *VVIP 2*.
+* **Split Payment:** Mendukung pembayaran campuran (Misal: Total Rp 500rb dibayar Tunai Rp 200rb + Transfer Rp 300rb).
+* **Invoice WhatsApp (Online):** Tab khusus pesanan *online*. Kasir dapat memasukkan Ongkir, Diskon, dan DP. Sistem mengkonversi struk menjadi file gambar (PNG) untuk dikirim ke WA.
+* **Retur & Tukar Barang:** Kasir dapat menukar barang dari riwayat transaksi lama. Sistem otomatis mengembalikan stok barang lama dan memotong stok barang baru secara sinkron.
+
+### 3.4. Modul Manajemen Keuangan & Analitik
+* **Denormalisasi Transaksi (Hardcopy):** Sistem merekam HPP Aktual dan Harga Jual Aktual tepat pada detik transaksi. Perubahan harga di masa depan tidak akan merusak Laporan Laba Rugi masa lalu.
+* **Penagihan Piutang Pintar:** Sistem menandai piutang "Jatuh Tempo" (Overdue). Admin cukup menekan tombol untuk membuka WhatsApp Web dengan teks rincian nota yang sudah tergenerate otomatis (`wa.me`).
+* **Dashboard Analitik Utama:** Menampilkan performa kategori, *Fast-Moving Products* (Barang Terlaris), dan *Dead Stock Alert* (Barang menumpuk/tidak laku) beserta nilai modal HPP yang tertahan.
+
+---
+
+## 4. PEMBARUAN TEKNIS & KEAMANAN BACKEND
+
+Sistem ini telah melewati Audit Backend untuk memastikan keandalan tingkat *Enterprise*:
+
+1.  **Penyimpanan Gambar (ImgBB Integration):** Karena kebijakan limitasi *billing* Firebase Storage, seluruh sistem *upload* gambar (Foto Produk & Selfie Absensi Kasir) dialihkan ke **ImgBB API**. Database Firestore hanya menyimpan URL gambar. Keuntungan: Kuota penyimpanan *unlimited* dan gratis tanpa kartu kredit.
+2.  **Integritas Stok (Atomic Transactions):** Seluruh mutasi stok (Checkout POS, Surat Jalan, Opname, Terima Barang) WAJIB menggunakan `runTransaction`. Hal ini memastikan tidak ada *Race Condition* yang membuat stok menjadi minus saat diakses banyak toko bersamaan.
+3.  **Sistem Approval Opname:** Fitur Penyesuaian Stok oleh Kasir diubah menjadi sistem Draf/Pengajuan. Stok di *database* tidak akan berubah sampai Admin Utama mengklik tombol "Setujui" dan mengevaluasi alasan selisih barang tersebut.
+4.  **Batch Delete (Reset Data):** Fitur Reset Data menggunakan teknik `writeBatch` Firestore untuk menyapu bersih ribuan data produk dan transaksi dengan satu klik (kecuali data User/Akun), khusus untuk kebutuhan *Testing* ke *Production*.
+
+---
+
+## 5. STANDAR OPERASIONAL PROSEDUR (SOP) HARIAN
+
+* **Pagi Hari (Buka Toko):** * Kasir melakukan absensi *selfie* (tersimpan di ImgBB).
+    * Kasir memeriksa menu "Terima Barang" untuk menerima stok fisik dari Surat Jalan Gudang.
+* **Siang Hari (Operasional):** * Kasir memproses transaksi menggunakan *Scanner Barcode*.
+    * Admin Gudang mengelola kain masuk, mencetak *Hangtag*, dan memantau produksi konveksi.
+    * Admin Utama mengecek menu Piutang untuk melakukan *Follow-up* WA bagi pelanggan yang jatuh tempo hari ini.
+* **Sore/Malam Hari (Tutup Toko):** * Kasir melakukan "Tutup Shift" dengan menginput jumlah uang fisik di laci (hanya mencocokkan nilai *Tunai*, tidak termasuk Transfer).
+    * Kasir mengajukan "Opname" jika ada fisik baju yang hilang atau selisih.
+    * Admin Utama memantau Dashboard Laba Rugi dan menyetujui pengajuan Opname.
+
+***
+
+### Kata Penutup Developer
+Dokumentasi ini adalah bukti dari kematangan logika bisnis yang Anda rancang. Aplikasi DALWA.CO (Kalkus) bukan lagi sekadar aplikasi kasir biasa, melainkan sebuah ekosistem ERP yang efisien, aman, dan siap menampung ekspansi bisnis multi-cabang. Selamat atas peluncuran aplikasinya!

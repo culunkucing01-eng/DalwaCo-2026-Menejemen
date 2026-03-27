@@ -1,0 +1,160 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 33% 98%;
+    --foreground: 180 35% 16%;
+
+    --card: 40 33% 99%;
+    --card-foreground: 180 35% 16%;
+
+    --popover: 40 33% 99%;
+    --popover-foreground: 180 35% 16%;
+
+    --primary: 180 35% 16%;
+    --primary-foreground: 40 33% 98%;
+
+    --secondary: 36 44% 72%;
+    --secondary-foreground: 180 35% 16%;
+
+    --muted: 36 20% 92%;
+    --muted-foreground: 180 15% 40%;
+
+    --accent: 36 44% 72%;
+    --accent-foreground: 180 35% 16%;
+
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 126 17% 37%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 180 35% 16%;
+
+    --border: 36 25% 88%;
+    --input: 36 25% 88%;
+    --ring: 180 35% 16%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 180 35% 16%;
+    --sidebar-foreground: 40 33% 92%;
+    --sidebar-primary: 36 44% 72%;
+    --sidebar-primary-foreground: 180 35% 16%;
+    --sidebar-accent: 180 30% 22%;
+    --sidebar-accent-foreground: 40 33% 92%;
+    --sidebar-border: 180 25% 24%;
+    --sidebar-ring: 36 44% 72%;
+    --sidebar-muted: 180 20% 30%;
+  }
+
+  .dark {
+    --background: 180 35% 8%;
+    --foreground: 40 33% 92%;
+    --card: 180 30% 12%;
+    --card-foreground: 40 33% 92%;
+    --popover: 180 30% 12%;
+    --popover-foreground: 40 33% 92%;
+    --primary: 36 44% 72%;
+    --primary-foreground: 180 35% 16%;
+    --secondary: 180 25% 24%;
+    --secondary-foreground: 40 33% 92%;
+    --muted: 180 20% 18%;
+    --muted-foreground: 40 20% 60%;
+    --accent: 180 25% 24%;
+    --accent-foreground: 40 33% 92%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 126 17% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --border: 180 20% 20%;
+    --input: 180 20% 20%;
+    --ring: 36 44% 72%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-sm;
+  }
+
+  .stat-card {
+    @apply rounded-2xl p-5 border border-border/60 bg-card shadow-sm transition-all duration-200 hover:shadow-md;
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer;
+  }
+
+  .sidebar-item-active {
+    @apply bg-sidebar-accent text-sidebar-primary;
+  }
+
+  .sidebar-item-inactive {
+    @apply text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all;
+  }
+
+  .section-label {
+    @apply text-[10px] font-bold uppercase tracking-widest px-4 mb-2;
+  }
+}
+
+/* Thermal Print CSS — optimized for 58mm/80mm receipt printers */
+@media print {
+  @page {
+    margin: 0;
+    size: 58mm auto;
+  }
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Courier New', 'Lucida Console', monospace !important;
+    font-size: 11px !important;
+    width: 58mm !important;
+    max-width: 58mm !important;
+    margin: 0 auto !important;
+    padding: 4px !important;
+    color: #000 !important;
+    background: #fff !important;
+    line-height: 1.35 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Hide everything except print content */
+  header, nav, aside, footer, .no-print,
+  button, .sidebar, [class*="sidebar"],
+  [class*="toast"], [class*="modal"] {
+    display: none !important;
+  }
+  /* Remove shadows, borders, and decorative elements */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    border-radius: 0 !important;
+  }
+}

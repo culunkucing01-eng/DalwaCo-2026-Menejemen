@@ -1,0 +1,47 @@
+Rombak total modul "Manajemen Keuangan" untuk menyesuaikan dengan standar akuntansi profesional. Buat 3 Tab Utama di halaman Keuangan: "Laba Rugi", "Arus Kas", dan "Pencatatan Pengeluaran (OPEX)". Terapkan UI dan logika Backend berikut:
+
+1. Tab "Pencatatan Pengeluaran (OPEX)"
+
+    Buat tabel dan form input untuk mencatat pengeluaran operasional harian.
+
+    Field: tanggal, kategori_pengeluaran (Dropdown: Gaji, Listrik/Air, Iklan/Marketing, Perlengkapan Toko, Lain-lain), nominal, dan keterangan.
+
+    Simpan ke collection baru bernama operational_expenses.
+
+2. Tab "Laporan Laba Rugi (Profit & Loss)"
+
+    Sediakan filter Date Range (Rentang Tanggal).
+
+    Tarik data dari sales_transactions pada rentang tanggal tersebut.
+
+    Kalkulasi Laba Kotor:
+
+        Pendapatan: SUM(qty x harga_jual_aktual) dari semua transaksi (termasuk yang statusnya Piutang).
+
+        HPP: SUM(qty x hpp_aktual).
+
+        Laba Kotor = Pendapatan - HPP.
+
+    Kalkulasi Laba Bersih:
+
+        Tarik data dari operational_expenses pada rentang tanggal yang sama. Jumlahkan totalnya.
+
+        Laba Bersih = Laba Kotor - Total Pengeluaran Operasional.
+
+    Tampilkan dengan format hirarki Card atau Table yang rapi: Pendapatan di atas, dikurangi HPP, dikurangi Beban, hasil akhir Laba Bersih di paling bawah (berwarna hijau jika plus, merah jika minus).
+
+3. Tab "Arus Kas (Cash Flow) & Ringkasan Aset"
+
+    Kas Masuk (Real Cash): Hitung SUM dari transaksi yang statusnya LUNAS, ditambah nilai dp_dibayar dari transaksi WA, ditambah nilai pelunasan dari menu Piutang.
+
+    Kas Keluar: Tarik total nominal dari operational_expenses.
+
+    Ringkasan Aset (Widget Khusus):
+
+        Total Piutang Berjalan: SUM tagihan yang belum lunas di sales_transactions.
+
+        Valuasi Inventaris: Lakukan query ke inventory, kalikan total stok aktif dengan hpp masing-masing produk, tampilkan sebagai "Nilai Aset Barang".
+
+4. Format Mata Uang
+
+    Pastikan semua angka di modul keuangan ini diformat secara otomatis menggunakan standar Rupiah (Rp). Contoh: Rp 15.000.000.

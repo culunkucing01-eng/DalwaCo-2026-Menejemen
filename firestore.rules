@@ -1,0 +1,263 @@
+// ============================================================
+// DALWA.CO - Firestore Security Rules Template
+// ============================================================
+// CARA PAKAI:
+// 1. Buka Firebase Console → Firestore Database → Rules
+// 2. Copy-paste seluruh isi file ini
+// 3. Klik "Publish"
+//
+// CATATAN: Rules ini menggunakan custom claims di auth token.
+// Pastikan field 'role' dan 'store' tersimpan di doc users/{uid}.
+// ============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper Functions ───────────────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function getUserStore() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.store;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getUserRole() == 'Admin Utama';
+    }
+
+    function isGudang() {
+      return isAuthenticated() && getUserRole() == 'Admin Gudang';
+    }
+
+    function isKasir() {
+      return isAuthenticated() && getUserRole() == 'Kasir Toko';
+    }
+
+    function isAdminOrGudang() {
+      return isAdmin() || isGudang();
+    }
+
+    function isPelanggan() {
+      return isAuthenticated() && getUserRole() == 'Pelanggan';
+    }
+
+    function isStaff() {
+      return isAdmin() || isGudang() || isKasir();
+    }
+
+    function getUserWa() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.wa;
+    }
+
+    // ─── 1. USERS ───────────────────────────────────────────
+    // Admin Pusat: full write
+    // Others: read own document only, write own document only (untuk seeding profil)
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+    }
+
+    // ─── 2. WHITELIST ───────────────────────────────────────
+    // Read tanpa auth: diperlukan untuk cek whitelist sebelum login
+    // Create tanpa auth: diperlukan untuk seeding akun test
+    // Update/Delete: hanya Admin
+    match /whitelist/{docId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── 3. MASTER PRODUCTS (products) ──────────────────────
+    // Admin & Gudang: full write (price restrictions enforced client-side for Gudang)
+    // Kasir & Pelanggan: read only (Pelanggan sees catalog)
+    // NOTE: Gudang cannot edit price/price_reseller/price_vvip fields — enforced at UI level
+    match /products/{productId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdminOrGudang();
+      allow delete: if isAdmin();
+    }
+
+    // ─── 4. MATERIALS (bahan baku kain) ─────────────────────
+    match /materials/{materialId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrGudang();
+    }
+
+    // ─── 5. CONVECTION LOGS (produksi) ──────────────────────
+    match /convectionLogs/{logId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrGudang();
+    }
+
+    // ─── 6. SHIPPING LOGS (surat jalan) ─────────────────────
+    match /shippingLogs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdminOrGudang();
+      allow update: if isAuthenticated(); // Kasir perlu update status "Received"
+      allow delete: if isAdmin();
+    }
+
+    // ─── 7. SALES TRANSACTIONS ──────────────────────────────
+    // Kasir: CREATE ONLY (tidak bisa edit/hapus struk)
+    // Admin: full access untuk audit
+    match /salesTransactions/{txId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated(); // Kasir bisa buat transaksi baru
+      allow update, delete: if isAdmin(); // Hanya Admin bisa koreksi/hapus
+    }
+
+    // ─── 8. RECEIVABLES (piutang) ───────────────────────────
+    match /receivables/{recId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated(); // Kasir perlu update pelunasan
+      allow delete: if isAdmin();
+    }
+
+    // ─── 9. PROMOS ──────────────────────────────────────────
+    match /promos/{promoId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ─── 10. MEMBERS ────────────────────────────────────────
+    match /members/{memberId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated(); // Points update saat transaksi
+      allow delete: if isAdmin();
+    }
+
+    // ─── 11. MEMBER SETTINGS ────────────────────────────────
+    match /memberSettings/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ─── 12. REWARDS ────────────────────────────────────────
+    match /rewards/{rewardId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ─── 13. CATEGORIES ─────────────────────────────────────
+    match /categories/{catId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrGudang();
+    }
+
+    // ─── 14. STORE PROFILES ─────────────────────────────────
+    match /storeProfiles/{profileId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Kasir bisa edit profil tokonya
+    }
+
+    // ─── 15. AUDIT LOGS ─────────────────────────────────────
+    match /auditLogs/{logId} {
+      allow read: if isAdminOrGudang();
+      allow create: if isAuthenticated(); // Semua role bisa buat log
+      allow update, delete: if false; // IMMUTABLE - tidak ada yang bisa edit/hapus
+    }
+
+    // ─── 16. LOGIN LOGS ─────────────────────────────────────
+    match /loginLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // IMMUTABLE
+    }
+
+    // ─── 17. ATTENDANCE LOGS ────────────────────────────────
+    match /attendanceLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // IMMUTABLE
+    }
+
+    // ─── 18. STOCK REQUESTS ─────────────────────────────────
+    match /stockRequests/{reqId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAdminOrGudang() || isKasir();
+      allow delete: if isAdmin();
+    }
+
+    // ─── 19. STOCK CHATS ────────────────────────────────────
+    match /stockChats/{chatId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // IMMUTABLE
+    }
+
+    // ─── 20. CUSTOM ORDERS ──────────────────────────────────
+    match /customOrders/{orderId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ─── 21. STORE LOCATIONS ────────────────────────────────
+    match /storeLocations/{docId} {
+      allow read: if true; // dipakai saat whitelist check sebelum login
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── 22. OPERATIONAL EXPENSES ───────────────────────────
+    match /operationalExpenses/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAdminOrGudang();
+      allow delete: if isAdmin();
+    }
+
+    // ─── 23. VENDOR PAYABLES ────────────────────────────────
+    match /vendorPayables/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdminOrGudang();
+      allow update: if isAdminOrGudang();
+      allow delete: if isAdmin();
+    }
+
+    // ─── 24. CASH SETTLEMENTS ───────────────────────────────
+    match /cashSettlements/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── 25. MATERIAL EDIT LOGS (immutable) ─────────────────
+    match /materialEditLogs/{docId} {
+      allow read: if isAdminOrGudang();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    // ─── 26. MATERIAL DELETE LOGS (immutable) ───────────────
+    match /materialDeleteLogs/{docId} {
+      allow read: if isAdminOrGudang();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    // ─── DEFAULT DENY ───────────────────────────────────────
+    // Semua collection lain yang tidak di-list di atas: DITOLAK
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// ============================================================
+// COMPOSITE INDEXES (Buat di Firebase Console → Firestore → Indexes)
+// ============================================================
+// 1. salesTransactions: date ASC, store ASC (untuk filter Dashboard Analytics)
+// 2. salesTransactions: timestamp DESC (untuk sorting)
+// 3. attendance: timestamp ASC (untuk cleanup expired records)
+// 4. stockRequests: timestamp DESC, status ASC (untuk filter pending)
+// 5. shippingLogs: timestamp DESC, status ASC (untuk filter In Transit)
+// ============================================================
